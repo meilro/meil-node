@@ -1,0 +1,59 @@
+{
+  "name": "@meilro/sdk",
+  "version": "0.1.0",
+  "description": "Official Node.js and TypeScript client for the meil.ro email API",
+  "keywords": [
+    "meil",
+    "email",
+    "transactional-email",
+    "newsletter"
+  ],
+  "homepage": "https://meil.ro/docs",
+  "license": "MIT",
+  "author": "meil.ro",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:live": "MEIL_LIVE=1 vitest run test/live.test.ts",
+    "generate": "openapi-typescript https://meil.ro/openapi.json -o src/generated/openapi.ts",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "openapi-typescript": "^7.13.0",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}
