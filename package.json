@@ -9,6 +9,11 @@
     "newsletter"
   ],
   "homepage": "https://meil.ro/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meilro/meil-node.git"
+  },
+  "bugs": "https://github.com/meilro/meil-node/issues",
   "license": "MIT",
   "author": "meil.ro",
   "type": "module",
