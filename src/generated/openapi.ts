@@ -21,7 +21,7 @@ export interface paths {
         put?: never;
         /**
          * POST /emails
-         * @description Sends an email. Put {{unsubscribe_url}} in the html or text and it becomes an unsubscribe link for the first "to" recipient, with a matching List-Unsubscribe header. Transactional email gets no footer from us. Optional: reply_to, cc and bcc (a string or an array), headers (an object of extra headers) and attachments (an array of {filename, content}, with content in base64; up to 20 files and 7 MB in total). to, cc and bcc together take at most 50 addresses. If from has no name, or reply_to is left out, the domain's defaults are used, set on its branding page. Addresses on your suppression list are skipped and listed in the response under suppressed. If no to address is left, the call is refused with 403. Send an Idempotency-Key header (any unique string, up to 255 characters) to make retries safe. Repeating the request with the same key and body within 24 hours returns the first response instead of sending again. The same key with a different body gets 409.
+         * @description Sends an email. Put {{unsubscribe_url}} in the html or text and it becomes an unsubscribe link for the first "to" recipient, with a matching List-Unsubscribe header. Transactional email gets no footer from us. {{view_url}} only works in broadcasts and is removed here. Optional: reply_to, cc and bcc (a string or an array), headers (an object of extra headers) and attachments (an array of {filename, content}, with content in base64; up to 20 files and 7 MB in total). to, cc and bcc together take at most 50 addresses. If from has no name, or reply_to is left out, the domain's defaults are used, set on its branding page. Addresses on your suppression list are skipped and listed in the response under suppressed. If no to address is left, the call is refused with 403. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins. Send an Idempotency-Key header (any unique string, up to 255 characters) to make retries safe. Repeating the request with the same key and body within 24 hours returns the first response instead of sending again. The same key with a different body gets 409.
          *
          *     Placeholders work in every call. Put {{name}} in the subject, html, text, heading, body or code and pass variables (an object of strings or numbers, HTML-escaped in the html). Without variables, nothing is replaced. With it, a placeholder without a fallback must get a value, or the call fails with 422 missing_variables. A fallback, as in {{first_name|there}}, makes it optional. Without a value, we use the recipient's contact data (first_name, last_name, email or a property, only when there is a single recipient), then the fallback.
          *
@@ -29,7 +29,7 @@ export interface paths {
          *
          *     The same branded email, with a file attached. Works the same with html or template_id.
          *
-         *     Sends a template saved under Templates. Pass the values for its {{name}} placeholders in variables (an object of strings or numbers, HTML-escaped in the html). A placeholder without a fallback must get a value, or the call fails with 422 missing_variables. One with a fallback, like {{first_name|there}}, is optional. Without a value it uses the recipient's contact data, then the fallback. subject is optional and defaults to the template's. template_id cannot be combined with html, text or heading / body / code / button.
+         *     Sends a template saved under Templates. Pass the values for its {{name}} placeholders in variables (an object of strings or numbers, HTML-escaped in the html). A placeholder without a fallback must get a value, or the call fails with 422 missing_variables. One with a fallback, like {{first_name|there}}, is optional. Without a value it uses the recipient's contact data, then the fallback. subject and preview_text are optional and default to the template's. template_id cannot be combined with html, text or heading / body / code / button.
          *
          *     API key: any key.
          */
@@ -151,7 +151,7 @@ export interface paths {
         put?: never;
         /**
          * POST /contacts
-         * @description Adds a contact to an audience. A contact is one person, shared by every audience and domain on your account, and the properties belong to them. If the address already exists, it only gets the properties it does not have yet. Existing ones stay as they are, and any you sent with a different value are listed in kept_properties. Change them with PATCH /api/contacts/{email}.
+         * @description Adds a contact to the audiences in audience_ids (a list, also for just one, up to 20). A contact is one person, shared by every audience and domain on your account, and the properties belong to them. If the address already exists, it only gets the properties it does not have yet. Existing ones stay as they are, and any you sent with a different value are listed in kept_properties. Change them with PATCH /api/contacts/{email}. With "confirm": true the contact waits until they confirm: they get one email from the audience's domain, and pressing its button subscribes them to every audience in the call and saves confirmed_at and confirmed_ip in their properties (from the first confirmation, never changed after). Until then they get nothing, and if they have not confirmed within 7 days they are deleted. Someone who has confirmed once is added straight away, without another email. Optional: from, reply_to, confirmed_url (your page they land on after confirming, on the audience's domain) and language (ro or en).
          *
          *     API key: whole account.
          */
@@ -171,7 +171,7 @@ export interface paths {
         };
         /**
          * GET /contacts/{email}
-         * @description Returns a contact, found by email address, with its properties and the audiences it is in. subscribed is false for an audience it left, and for every audience when the address is blocked for all your emails.
+         * @description Returns a contact, found by email address, with its properties and the audiences it is in. For each audience, subscribed is false when it left that audience, when the address is blocked for all your emails, or while it waits for confirmation (pending_confirmation). subscribed_at shows when it joined, and unsubscribed_at when it left.
          *
          *     API key: whole account.
          */
@@ -189,7 +189,7 @@ export interface paths {
         head?: never;
         /**
          * PATCH /contacts/{email}
-         * @description Changes a contact's name and properties, found by email address. Only what you send changes, and a property sent as null is removed. A contact and its properties are shared by every audience on your account.
+         * @description Changes a contact's name, properties and lists, found by email address. Only what you send changes, and a property sent as null is removed. A contact and its properties are shared by every audience on your account. For a preferences page on your own site, send audiences, for example {"aud_1": true, "aud_2": false}: true subscribes them to that list, false unsubscribes them. An address that bounced or reported spam stays blocked.
          *
          *     API key: whole account.
          */
@@ -235,9 +235,9 @@ export interface paths {
         put?: never;
         /**
          * POST /broadcasts
-         * @description Creates a broadcast as a draft. Add "send": true to send it right away, or "scheduled_at" (ISO 8601, Plus and Professional only) to send it later. Every broadcast gets a one-click List-Unsubscribe header, plus an unsubscribe footer unless your HTML already contains {{unsubscribe_url}}. While a broadcast is going out, "status" can be "canary"; one paused for review shows "under_review": true. reply_to (optional, one address) is where replies go, for example a real inbox when the From address has none. The from address must be on the audience's domain or one of its subdomains. If "send": true is refused, no draft is left behind. Use placeholders like {{first_name|there}} in the subject and html. Each recipient gets their own first_name, last_name, email or custom property, and the text after | is the fallback when the contact has no value. variables (an object of strings or numbers) sets one value for everyone and overrides the contact's own. Send an Idempotency-Key header (any unique string, up to 255 characters) to make retries safe. Repeating the request with the same key and body within 24 hours returns the first response instead of sending again. The same key with a different body gets 409.
+         * @description Creates a broadcast as a draft. Add "send": true to send it right away, or "scheduled_at" (ISO 8601, Plus and Professional only) to send it later. Every broadcast gets a one-click List-Unsubscribe header, plus an unsubscribe footer unless your HTML already contains {{unsubscribe_url}} or the domain has "I have my own unsubscribe page" ticked on its branding page. Put {{view_url}} in the HTML for a link to the email's web version. While a broadcast is going out, "status" can be "canary"; one paused for review shows "under_review": true. reply_to (optional, one address) is where replies go, for example a real inbox when the From address has none. The from address must be on the audience's domain or one of its subdomains. If "send": true is refused, no draft is left behind. Use placeholders like {{first_name|there}} in the subject and html. Each recipient gets their own first_name, last_name, email or custom property, and the text after | is the fallback when the contact has no value. variables (an object of strings or numbers) sets one value for everyone and overrides the contact's own. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins. Send an Idempotency-Key header (any unique string, up to 255 characters) to make retries safe. Repeating the request with the same key and body within 24 hours returns the first response instead of sending again. The same key with a different body gets 409.
          *
-         *     Pass template_id instead of html to start from a saved template. The broadcast gets a copy of its subject, html and text, so later edits to the template do not affect it. subject is optional and overrides the template's. template_id cannot be combined with html or text. In a broadcast, a placeholder with no value is left empty, so give it a fallback.
+         *     Pass template_id instead of html to start from a saved template. The broadcast gets a copy of its subject, preview text, html and text, so later edits to the template do not affect it. subject and preview_text are optional and override the template's. template_id cannot be combined with html or text. In a broadcast, a placeholder with no value is left empty, so give it a fallback.
          *
          *     API key: whole account, or emails and broadcasts.
          */
@@ -275,7 +275,7 @@ export interface paths {
         head?: never;
         /**
          * PATCH /broadcasts/{id}
-         * @description Changes a draft that has not started sending, scheduled or not. Send only the fields to change: audience_id, from, reply_to (null removes it), subject, html, text, variables. Each is checked as when creating one. Once sending has started, the answer is invalid_state. To change when it sends, use schedule.
+         * @description Changes a draft that has not started sending, scheduled or not. Send only the fields to change: audience_id, from, reply_to (null removes it), subject, preview_text (null removes it), html, text, variables. Each is checked as when creating one. Once sending has started, the answer is invalid_state. To change when it sends, use schedule.
          *
          *     API key: whole account, or emails and broadcasts.
          */
@@ -365,7 +365,7 @@ export interface paths {
         put?: never;
         /**
          * POST /templates
-         * @description Saves a template you can send with template_id, from POST /api/emails or a broadcast. name and html are required; subject is an optional default. Placeholders work as everywhere else: {{name}}, or {{name|fallback}} for a default. The answer includes its content check score.
+         * @description Saves a template you can send with template_id, from POST /api/emails or a broadcast. name and html are required; subject is an optional default. Placeholders work as everywhere else: {{name}}, or {{name|fallback}} for a default. The answer includes its content check score. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins.
          *
          *     API key: whole account, or emails and broadcasts.
          */
@@ -385,7 +385,7 @@ export interface paths {
         };
         /**
          * GET /templates/{id}
-         * @description Returns the template with its html, text and the placeholders it uses.
+         * @description Returns the template with its preview_text, html, text and the placeholders it uses.
          *
          *     API key: whole account, or emails and broadcasts.
          */
@@ -403,7 +403,7 @@ export interface paths {
         head?: never;
         /**
          * PATCH /templates/{id}
-         * @description Changes only the fields sent: name, subject, html, text. Broadcasts already made from it keep their own copy. The answer includes the new content check score.
+         * @description Changes only the fields sent: name, subject, preview_text, html, text. Broadcasts already made from it keep their own copy. The answer includes the new content check score.
          *
          *     API key: whole account, or emails and broadcasts.
          */
@@ -421,7 +421,7 @@ export interface paths {
         put?: never;
         /**
          * POST /content/check
-         * @description Scores an email out of 100 and lists what to improve, each issue with a severity (high, medium or low) and a fix: links through shorteners or showing a different address than they open, an email too big for Gmail, mostly images, no plain-text version, a subject in capitals, a sender with no name, and similar. Send the from, subject, html and text you are about to use, or a template_id. With an audience_id (and the variables you will send), it also finds placeholders that some of its contacts would leave empty. Nothing is sent or counted. The score covers the content only. How your domain is known to mail providers matters just as much.
+         * @description Scores an email out of 100 and lists what to improve, each issue with a severity (high, medium or low) and a fix: links through shorteners or showing a different address than they open, an email too big for Gmail, mostly images, no plain-text version, a subject in capitals, a sender with no name, and similar. Send the from, subject, html and text you are about to use, or a template_id. With preview_text (even empty), the preview text is checked too. With an audience_id (and the variables you will send), it also finds placeholders that some of its contacts would leave empty. Nothing is sent or counted. The score covers the content only. How your domain is known to mail providers matters just as much.
          *
          *     API key: any key.
          */
@@ -556,18 +556,33 @@ export interface components {
                 unsubscribed_at: string | null;
                 /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
                 created_at: string;
+                /** @description Added with confirm and not confirmed yet: gets nothing until then. */
+                pending_confirmation: boolean;
             }[];
         };
         Contact: {
             /** @constant */
             object: "contact";
-            id: string;
             email: string;
-            subscribed: boolean;
+            /** @description One entry per audience in audience_ids, in that order. */
+            audiences: {
+                id: string;
+                audience_id: string;
+                /** @description false once it left this audience, when the address is blocked for all your emails, or while it waits for confirmation. */
+                subscribed: boolean;
+                /** @description Added with confirm and not confirmed yet. */
+                pending_confirmation: boolean;
+                /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
+                subscribed_at: string | null;
+                /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
+                unsubscribed_at: string | null;
+            }[];
             /** @description What the contact holds now (shared by every audience of the account). */
-            properties?: Record<string, never>;
+            properties: Record<string, never>;
             /** @description Only when the contact already existed: keys you sent with a different value than the one it keeps. Change them with PATCH /api/contacts/{email}. */
             kept_properties?: string[];
+            /** @description With confirm: whether a confirmation email went out now. false when nothing waits for one, or after 3 to the same address in an hour. */
+            confirmation_sent?: boolean;
         };
         ContactDetail: {
             /** @constant */
@@ -582,8 +597,14 @@ export interface components {
             audiences: {
                 id: string;
                 audience_id: string;
-                /** @description false once it left this audience, or when the address is blocked for all your emails. */
+                /** @description false once it left this audience, when the address is blocked for all your emails, or while it waits for confirmation. */
                 subscribed: boolean;
+                /** @description Added with confirm and not confirmed yet. */
+                pending_confirmation: boolean;
+                /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
+                subscribed_at: string | null;
+                /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
+                unsubscribed_at: string | null;
             }[];
         };
         ContactDeleted: {
@@ -647,6 +668,7 @@ export interface components {
             id: string;
             name: string;
             subject: string;
+            preview_text: string | null;
             html: string;
             text: string;
             /** @description The placeholders it uses, first seen first. */
@@ -662,6 +684,7 @@ export interface components {
             id: string;
             name: string;
             subject: string;
+            preview_text: string | null;
             html: string;
             text: string;
             /** @description The placeholders it uses, first seen first. */
@@ -675,7 +698,7 @@ export interface components {
                 score: number;
                 issues: {
                     /** @enum {string} */
-                    code: "unsafe_markup" | "html_clipped" | "link_shortener" | "link_mismatch" | "ip_links" | "unfilled_placeholder" | "broken_images" | "relative_links" | "external_stylesheet" | "unsubscribe_as_text" | "image_heavy" | "insecure_links" | "subject_shouting" | "no_dmarc" | "images_no_alt" | "no_sender_name" | "noreply_sender" | "subject_test";
+                    code: "unsafe_markup" | "html_clipped" | "link_shortener" | "link_mismatch" | "ip_links" | "unfilled_placeholder" | "broken_images" | "relative_links" | "external_stylesheet" | "unsubscribe_as_text" | "image_heavy" | "insecure_links" | "subject_shouting" | "no_dmarc" | "images_no_alt" | "no_preview_text" | "no_sender_name" | "noreply_sender" | "subject_test";
                     /** @enum {string} */
                     severity: "high" | "medium" | "low";
                     message: string;
@@ -710,7 +733,7 @@ export interface components {
             score: number;
             issues: {
                 /** @enum {string} */
-                code: "unsafe_markup" | "html_clipped" | "link_shortener" | "link_mismatch" | "ip_links" | "unfilled_placeholder" | "broken_images" | "relative_links" | "external_stylesheet" | "unsubscribe_as_text" | "image_heavy" | "insecure_links" | "subject_shouting" | "no_dmarc" | "images_no_alt" | "no_sender_name" | "noreply_sender" | "subject_test";
+                code: "unsafe_markup" | "html_clipped" | "link_shortener" | "link_mismatch" | "ip_links" | "unfilled_placeholder" | "broken_images" | "relative_links" | "external_stylesheet" | "unsubscribe_as_text" | "image_heavy" | "insecure_links" | "subject_shouting" | "no_dmarc" | "images_no_alt" | "no_preview_text" | "no_sender_name" | "noreply_sender" | "subject_test";
                 /** @enum {string} */
                 severity: "high" | "medium" | "low";
                 message: string;
@@ -725,6 +748,7 @@ export interface components {
             from: string;
             reply_to: string | null;
             subject: string;
+            preview_text: string | null;
             /** @enum {string} */
             status: "draft" | "canary" | "queued" | "sending" | "paused" | "sent" | "canceled";
             template_id: string | null;
@@ -855,6 +879,8 @@ export interface operations {
                     reply_to?: string | string[];
                     /** @description Required unless template_id supplies one. */
                     subject?: string;
+                    /** @description The line inboxes show next to the subject. Put hidden at the top of the html when sent; may hold {{placeholders}}. A template's own is used when the call sends none. */
+                    preview_text?: string;
                     html?: string;
                     text?: string;
                     /** @description A template saved under Templates. Not combined with html, text or the layout fields. */
@@ -1165,7 +1191,8 @@ export interface operations {
                      *           },
                      *           "unsubscribed": false,
                      *           "unsubscribed_at": null,
-                     *           "created_at": "2026-03-01 09:00:00"
+                     *           "created_at": "2026-03-01 09:00:00",
+                     *           "pending_confirmation": false
                      *         }
                      *       ]
                      *     }
@@ -1190,13 +1217,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    audience_id: string;
+                    /** @description The audiences to add the contact to: a list, also for one. */
+                    audience_ids: string[];
                     /** Format: email */
                     email: string;
                     first_name?: string;
                     last_name?: string;
                     /** @description Your own custom fields, usable as {{placeholders}}. Shared by every audience: an existing contact only gains keys it does not have yet. */
                     properties?: Record<string, never>;
+                    /** @description true: the contact waits until they confirm. They get one email from the audience's domain, and pressing its button subscribes them to every audience in the call and stores confirmed_at and confirmed_ip (the first confirmation, never overwritten) on the contact. Someone who confirmed before is added straight away, without another email. Unconfirmed sign-ups are deleted after 7 days. */
+                    confirm?: boolean;
+                    /** @description With confirm: who the confirmation email comes from. Default no-reply@ the audience's domain, with its default sender name. */
+                    from?: string;
+                    /** @description With confirm: optional reply-to for the confirmation email. */
+                    reply_to?: string;
+                    /**
+                     * Format: uri
+                     * @description With confirm: your page to send the person to after they confirm. Must be on the audience's domain or a subdomain.
+                     */
+                    confirmed_url?: string;
+                    /**
+                     * @description With confirm: the language of the email and page. Default your account's language.
+                     * @enum {string}
+                     */
+                    language?: "ro" | "en";
                 };
             };
         };
@@ -1210,15 +1254,27 @@ export interface operations {
                     /**
                      * @example {
                      *       "object": "contact",
-                     *       "id": "…",
                      *       "email": "a@b.com",
-                     *       "subscribed": true,
-                     *       "properties": {
-                     *         "plan": "pro"
-                     *       },
-                     *       "kept_properties": [
-                     *         "plan"
-                     *       ]
+                     *       "properties": [],
+                     *       "audiences": [
+                     *         {
+                     *           "id": "…",
+                     *           "audience_id": "aud_123",
+                     *           "subscribed": false,
+                     *           "pending_confirmation": true,
+                     *           "subscribed_at": null,
+                     *           "unsubscribed_at": null
+                     *         },
+                     *         {
+                     *           "id": "…",
+                     *           "audience_id": "aud_456",
+                     *           "subscribed": false,
+                     *           "pending_confirmation": true,
+                     *           "subscribed_at": null,
+                     *           "unsubscribed_at": null
+                     *         }
+                     *       ],
+                     *       "confirmation_sent": true
                      *     }
                      */
                     "application/json": components["schemas"]["Contact"];
@@ -1261,8 +1317,11 @@ export interface operations {
                      *       "audiences": [
                      *         {
                      *           "id": "…",
-                     *           "audience_id": "…",
-                     *           "subscribed": true
+                     *           "audience_id": "aud_1",
+                     *           "subscribed": true,
+                     *           "pending_confirmation": false,
+                     *           "subscribed_at": "2026-03-01 09:00:00",
+                     *           "unsubscribed_at": null
                      *         }
                      *       ]
                      *     }
@@ -1327,6 +1386,10 @@ export interface operations {
                     last_name?: string;
                     /** @description Keys to set; a key sent as null is removed. Others stay as they are. */
                     properties?: Record<string, never>;
+                    /** @description For a preferences page on your own site: audience id => true to join that list, false to leave it. Up to 20. Leaving counts as the person's own unsubscribe; an address that bounced or reported spam stays blocked. */
+                    audiences?: {
+                        [key: string]: boolean;
+                    };
                 };
             };
         };
@@ -1350,8 +1413,19 @@ export interface operations {
                      *       "audiences": [
                      *         {
                      *           "id": "…",
-                     *           "audience_id": "…",
-                     *           "subscribed": true
+                     *           "audience_id": "aud_1",
+                     *           "subscribed": true,
+                     *           "pending_confirmation": false,
+                     *           "subscribed_at": "2026-03-01 09:00:00",
+                     *           "unsubscribed_at": null
+                     *         },
+                     *         {
+                     *           "id": "…",
+                     *           "audience_id": "aud_2",
+                     *           "subscribed": false,
+                     *           "pending_confirmation": false,
+                     *           "subscribed_at": "2026-03-01 09:00:00",
+                     *           "unsubscribed_at": "2026-10-21 14:05:12"
                      *         }
                      *       ]
                      *     }
@@ -1466,6 +1540,8 @@ export interface operations {
                     reply_to?: string;
                     /** @description Required unless template_id supplies one. */
                     subject?: string;
+                    /** @description The line inboxes show next to the subject. Put hidden at the top of the html when sent; may hold {{placeholders}}. A template's own is used when the call sends none. */
+                    preview_text?: string;
                     html?: string;
                     text?: string;
                     /** @description Not combined with html or text. */
@@ -1544,6 +1620,7 @@ export interface operations {
                      *       "from": "Your Company <news@yourdomain.com>",
                      *       "reply_to": null,
                      *       "subject": "March newsletter",
+                     *       "preview_text": null,
                      *       "status": "sending",
                      *       "template_id": null,
                      *       "canary_note": null,
@@ -1625,6 +1702,8 @@ export interface operations {
                      */
                     reply_to?: string | null;
                     subject?: string;
+                    /** @description null or "" removes it. */
+                    preview_text?: string | null;
                     html?: string;
                     text?: string;
                     /** @description Values for {{placeholders}}: strings or numbers. */
@@ -1649,6 +1728,7 @@ export interface operations {
                      *       "from": "Your Company <news@yourdomain.com>",
                      *       "reply_to": null,
                      *       "subject": "March newsletter: free delivery",
+                     *       "preview_text": null,
                      *       "status": "draft",
                      *       "template_id": null,
                      *       "canary_note": null,
@@ -1849,6 +1929,8 @@ export interface operations {
                     name: string;
                     /** @description Optional default subject; a call that sends with it can give its own. */
                     subject?: string;
+                    /** @description The line inboxes show next to the subject. Put hidden at the top of the html when sent; may hold {{placeholders}}. */
+                    preview_text?: string;
                     /** @description With {{placeholders}}, {{name|fallback}} for a default. */
                     html: string;
                     /** @description Optional plain-text version, same placeholders. */
@@ -1869,6 +1951,7 @@ export interface operations {
                      *       "id": "…",
                      *       "name": "Order shipped",
                      *       "subject": "Order {{order_id}} is on its way",
+                     *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
                      *       "text": "Hi {{first_name|there}}, order {{order_id}} is on its way.",
                      *       "variables": [
@@ -1916,6 +1999,7 @@ export interface operations {
                      *       "id": "…",
                      *       "name": "Order shipped",
                      *       "subject": "Order {{order_id}} is on its way",
+                     *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
                      *       "text": "Hi {{first_name|there}}, order {{order_id}} is on its way.",
                      *       "variables": [
@@ -1984,6 +2068,7 @@ export interface operations {
                 "application/json": {
                     name?: string;
                     subject?: string;
+                    preview_text?: string;
                     html?: string;
                     text?: string;
                 };
@@ -2002,6 +2087,7 @@ export interface operations {
                      *       "id": "…",
                      *       "name": "Order shipped",
                      *       "subject": "Your order {{order_id}} has shipped",
+                     *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
                      *       "text": "Hi {{first_name|there}}, order {{order_id}} is on its way.",
                      *       "variables": [
@@ -2038,6 +2124,8 @@ export interface operations {
                 "application/json": {
                     from?: string;
                     subject?: string;
+                    /** @description Sent (even empty), it is checked too: none means the inbox shows the start of the body. */
+                    preview_text?: string;
                     html?: string;
                     text?: string;
                     /** @description Checks a saved template; a subject sent with the call wins over its own. */

@@ -5,9 +5,12 @@ export class Contacts {
   constructor(private readonly http: HttpClient) {}
 
   /**
-   * POST /contacts: adds someone to an audience. An existing contact only gains
-   * the properties it lacks; clashing values are kept and named in
-   * `kept_properties`. Never undoes an unsubscribe.
+   * POST /contacts: adds someone to the audiences in `audience_ids` (a list,
+   * also for one). An existing contact only gains the properties it lacks;
+   * clashing values are kept and named in `kept_properties`. Never undoes an
+   * unsubscribe. With `confirm: true` they wait until they press the button in
+   * a confirmation email (`pending_confirmation`); someone who confirmed before
+   * is added straight away.
    */
   async add(params: AddContactParams, options?: RequestOptions): Promise<Contact> {
     const { data } = await this.http.request({ method: 'POST', path: '/contacts', body: params, options });
@@ -20,7 +23,11 @@ export class Contacts {
     return data as ContactDetail;
   }
 
-  /** PATCH /contacts/{email}. Only what you send changes; a property set to `null` is removed. */
+  /**
+   * PATCH /contacts/{email}. Only what you send changes; a property set to
+   * `null` is removed. `audiences` ({ [audienceId]: true | false }) puts them on
+   * or takes them off lists, for a preference page on your own site.
+   */
   async update(email: string, params: UpdateContactParams, options?: RequestOptions): Promise<ContactDetail> {
     const { data } = await this.http.request({
       method: 'PATCH',

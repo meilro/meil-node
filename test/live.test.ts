@@ -121,10 +121,10 @@ describe.skipIf(!KEY || !DOMAIN)('live API', { timeout: 60_000 }, () => {
       const a = sim('contact-a');
       const b = sim('contact-b');
       created.contacts.push(a, b);
-      const added = await meil.contacts.add({ audience_id: audience.id, email: a, first_name: 'Ana', properties: { city: 'Cluj', plan: 'pro' } });
-      expect(added.subscribed).toBe(true);
-      await meil.contacts.add({ audience_id: audience.id, email: b });
-      const again = await meil.contacts.add({ audience_id: audience.id, email: a, properties: { city: 'Iasi' } });
+      const added = await meil.contacts.add({ audience_ids: [audience.id], email: a, first_name: 'Ana', properties: { city: 'Cluj', plan: 'pro' } });
+      expect(added.audiences[0]!.subscribed).toBe(true);
+      await meil.contacts.add({ audience_ids: [audience.id], email: b });
+      const again = await meil.contacts.add({ audience_ids: [audience.id], email: a, properties: { city: 'Iasi' } });
       expect(again.kept_properties).toEqual(['city']);
 
       const contact = await meil.contacts.get(a);
@@ -132,6 +132,9 @@ describe.skipIf(!KEY || !DOMAIN)('live API', { timeout: 60_000 }, () => {
       expect(contact.properties).toEqual({ city: 'Cluj', plan: 'pro' });
       const updated = await meil.contacts.update(a, { last_name: 'Pop', properties: { plan: null, city: 'Iasi' } });
       expect(updated.properties).toEqual({ city: 'Iasi' });
+      const left = await meil.contacts.update(a, { audiences: { [audience.id]: false } });
+      expect(left.audiences[0]).toMatchObject({ audience_id: audience.id, subscribed: false });
+      expect((await meil.contacts.update(a, { audiences: { [audience.id]: true } })).audiences[0]!.subscribed).toBe(true);
 
       expect((await meil.audiences.get(audience.id)).contacts_count).toBe(2);
       const page = await meil.audiences.listContacts(audience.id, { limit: 1 });

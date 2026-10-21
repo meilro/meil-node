@@ -115,7 +115,7 @@ describe('retries', () => {
   it('never retries a POST without an Idempotency-Key', async () => {
     for (const reply of [new TypeError('fetch failed'), new Response('', { status: 503 }), apiError(429, 'rate_limit_exceeded', {}, { 'Retry-After': '1' })]) {
       const { fetch, calls, times } = timedFetch(reply);
-      const out = (await settle(client(fetch).contacts.add({ audience_id: 'a1', email: 'c@y.ro' }))) as { error: Error };
+      const out = (await settle(client(fetch).contacts.add({ audience_ids: ['a1'], email: 'c@y.ro' }))) as { error: Error };
       expect(out.error).toBeInstanceOf(Error);
       expect(calls).toHaveLength(1);
       expect(calls[0]!.headers['idempotency-key']).toBeUndefined();
