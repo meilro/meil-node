@@ -73,15 +73,15 @@ export interface paths {
          * GET /audiences
          * @description Lists your audiences.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         get: operations["listAudiences"];
         put?: never;
         /**
          * POST /audiences
-         * @description Creates an audience. domain is required: one of your sending domains. Its broadcasts are sent from it or its subdomains, and their unsubscribe page lists it.
+         * @description Creates an audience. domain is optional: one of the key's domains, news.firma.ro say, so its confirmation emails come from there. Left out, the audience belongs to the key's domain. A key on all domains puts it on the account's only domain, and has to name one when there are several. Its broadcasts are sent from its domain or subdomains, and their unsubscribe page lists it.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         post: operations["createAudience"];
         delete?: never;
@@ -101,7 +101,7 @@ export interface paths {
          * GET /audiences/{id}
          * @description Returns an audience and how many contacts it has. List them with GET /api/audiences/{id}/contacts.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         get: operations["getAudience"];
         put?: never;
@@ -110,7 +110,7 @@ export interface paths {
          * DELETE /audiences/{id}
          * @description Deletes an audience and its list of contacts. A contact who is also in another audience stays there. Broadcasts already sent to it are kept.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         delete: operations["deleteAudience"];
         options?: never;
@@ -129,7 +129,7 @@ export interface paths {
          * GET /audiences/{id}/contacts
          * @description Lists the contacts in an audience, newest first. limit is 1 to 1000, default 100. For the next page pass after=<id of the last contact you got>, for the previous one before=<id>; has_more says whether there is another page.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         get: operations["listContacts"];
         put?: never;
@@ -153,7 +153,7 @@ export interface paths {
          * POST /contacts
          * @description Adds a contact to the audiences in audience_ids (a list, also for just one, up to 20). A contact is one person, shared by every audience and domain on your account, and the properties belong to them. If the address already exists, it only gets the properties it does not have yet. Existing ones stay as they are, and any you sent with a different value are listed in kept_properties. Change them with PATCH /api/contacts/{email}. With "confirm": true the contact waits until they confirm: they get one email from the audience's domain, and pressing its button subscribes them to every audience in the call and saves confirmed_at and confirmed_ip in their properties (from the first confirmation, never changed after). Until then they get nothing, and if they have not confirmed within 7 days they are deleted. Someone who has confirmed once is added straight away, without another email. Optional: from, reply_to, confirmed_url (your page they land on after confirming, on the audience's domain) and language (ro or en).
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         post: operations["addContact"];
         delete?: never;
@@ -173,7 +173,7 @@ export interface paths {
          * GET /contacts/{email}
          * @description Returns a contact, found by email address, with its properties and the audiences it is in. For each audience, subscribed is false when it left that audience, when the address is blocked for all your emails, or while it waits for confirmation (pending_confirmation). subscribed_at shows when it joined, and unsubscribed_at when it left.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         get: operations["getContact"];
         put?: never;
@@ -182,7 +182,7 @@ export interface paths {
          * DELETE /contacts/{email}
          * @description Deletes a contact from every audience, with its name and properties, for example when someone asks you to delete their data. An address that unsubscribed, bounced or reported spam stays on your suppression list, so a later import cannot email it again.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         delete: operations["deleteContact"];
         options?: never;
@@ -191,7 +191,7 @@ export interface paths {
          * PATCH /contacts/{email}
          * @description Changes a contact's name, properties and lists, found by email address. Only what you send changes, and a property sent as null is removed. A contact and its properties are shared by every audience on your account. For a preferences page on your own site, send audiences, for example {"aud_1": true, "aud_2": false}: true subscribes them to that list, false unsubscribes them. An address that bounced or reported spam stays blocked.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         patch: operations["updateContact"];
         trace?: never;
@@ -210,7 +210,7 @@ export interface paths {
          * DELETE /audiences/{id}/contacts/{email}
          * @description Takes a contact off one audience. It stays in your other audiences, and is deleted once it is in none. If it had unsubscribed from this audience, it stays unsubscribed when you add it back.
          *
-         *     API key: whole account.
+         *     API key: full access.
          */
         delete: operations["removeContact"];
         options?: never;
@@ -229,7 +229,7 @@ export interface paths {
          * GET /broadcasts
          * @description Lists your broadcasts, newest first: id, audience_id, subject, status, scheduled_at, created_at, sent_at.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         get: operations["listBroadcasts"];
         put?: never;
@@ -239,7 +239,7 @@ export interface paths {
          *
          *     Pass template_id instead of html to start from a saved template. The broadcast gets a copy of its subject, preview text, html and text, so later edits to the template do not affect it. subject and preview_text are optional and override the template's. template_id cannot be combined with html or text. In a broadcast, a placeholder with no value is left empty, so give it a fallback.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         post: operations["createBroadcast"];
         delete?: never;
@@ -259,7 +259,7 @@ export interface paths {
          * GET /broadcasts/{id}
          * @description Returns the status and recipient counts (sent / failed / pending). unqueued is how many recipients are waiting for your daily limit to reset; until the last of them goes out, the status stays "sending".
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         get: operations["getBroadcast"];
         put?: never;
@@ -268,7 +268,7 @@ export interface paths {
          * DELETE /broadcasts/{id}
          * @description Deletes a draft, scheduled or not. A broadcast that has sent anything cannot be deleted.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         delete: operations["deleteBroadcast"];
         options?: never;
@@ -277,7 +277,7 @@ export interface paths {
          * PATCH /broadcasts/{id}
          * @description Changes a draft that has not started sending, scheduled or not. Send only the fields to change: audience_id, from, reply_to (null removes it), subject, preview_text (null removes it), html, text, variables. Each is checked as when creating one. Once sending has started, the answer is invalid_state. To change when it sends, use schedule.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         patch: operations["updateBroadcast"];
         trace?: never;
@@ -295,7 +295,7 @@ export interface paths {
          * POST /broadcasts/{id}/send
          * @description Sends a draft broadcast. While it is going out, "status" can be "canary". A broadcast bigger than what is left of your daily limit goes out in daily slices, and "unqueued" in the response is how many recipients are still waiting.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         post: operations["sendBroadcast"];
         delete?: never;
@@ -317,7 +317,7 @@ export interface paths {
          * POST /broadcasts/{id}/schedule
          * @description Sets or changes when a draft broadcast sends. Plus and Professional only. scheduled_at is an ISO 8601 timestamp with a timezone offset, or "Z" for UTC. A time without a timezone is rejected.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         post: operations["scheduleBroadcast"];
         delete?: never;
@@ -339,7 +339,7 @@ export interface paths {
          * POST /broadcasts/{id}/unschedule
          * @description Cancels the schedule. The broadcast stays a draft.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         post: operations["unscheduleBroadcast"];
         delete?: never;
@@ -359,15 +359,15 @@ export interface paths {
          * GET /templates
          * @description Your templates, most recently changed first, without their content.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         get: operations["listTemplates"];
         put?: never;
         /**
          * POST /templates
-         * @description Saves a template you can send with template_id, from POST /api/emails or a broadcast. name and html are required; subject is an optional default. Placeholders work as everywhere else: {{name}}, or {{name|fallback}} for a default. The answer includes its content check score. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins.
+         * @description Saves a template you can send with template_id, from POST /api/emails or a broadcast. name and html are required; subject is an optional default. domain (optional) is the domain it belongs to, the key's domain by default (none for a key on all domains): a key sees only its own domains' templates. Placeholders work as everywhere else: {{name}}, or {{name|fallback}} for a default. The answer includes its content check score. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         post: operations["createTemplate"];
         delete?: never;
@@ -387,7 +387,7 @@ export interface paths {
          * GET /templates/{id}
          * @description Returns the template with its preview_text, html, text and the placeholders it uses.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         get: operations["getTemplate"];
         put?: never;
@@ -396,18 +396,40 @@ export interface paths {
          * DELETE /templates/{id}
          * @description Deletes the template. Emails already sent and broadcasts made from it are not affected.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         delete: operations["deleteTemplate"];
         options?: never;
         head?: never;
         /**
          * PATCH /templates/{id}
-         * @description Changes only the fields sent: name, subject, preview_text, html, text. Broadcasts already made from it keep their own copy. The answer includes the new content check score.
+         * @description Changes only the fields sent: name, subject, preview_text, html, text, domain. Broadcasts already made from it keep their own copy. The answer includes the new content check score.
          *
-         *     API key: whole account, or emails and broadcasts.
+         *     API key: full access, or emails and broadcasts.
          */
         patch: operations["updateTemplate"];
+        trace?: never;
+    };
+    "/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /key
+         * @description Returns the key making the request: its name, permission and the domain it is limited to, empty for a key that works with every domain. A key limited to a main domain also covers its subdomains. Use it to check that an integration was given the right key for its site. Works with any key.
+         *
+         *     API key: any key.
+         */
+        get: operations["getApiKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/content/check": {
@@ -668,6 +690,8 @@ export interface components {
             id: string;
             name: string;
             subject: string;
+            /** @description The sending domain it belongs to; keys see only their own domains' templates. null for one from before templates had a domain. */
+            domain: string | null;
             preview_text: string | null;
             html: string;
             text: string;
@@ -684,6 +708,8 @@ export interface components {
             id: string;
             name: string;
             subject: string;
+            /** @description The sending domain it belongs to; keys see only their own domains' templates. null for one from before templates had a domain. */
+            domain: string | null;
             preview_text: string | null;
             html: string;
             text: string;
@@ -713,6 +739,8 @@ export interface components {
                 id: string;
                 name: string;
                 subject: string;
+                /** @description The sending domain it belongs to; keys see only their own domains' templates. null for one from before templates had a domain. */
+                domain: string | null;
                 /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
                 created_at: string;
                 /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
@@ -725,6 +753,19 @@ export interface components {
             id: string;
             /** @constant */
             deleted: true;
+        };
+        ApiKey: {
+            /** @constant */
+            object: "api_key";
+            name: string;
+            /** @enum {string} */
+            permission: "full_access" | "broadcast_access" | "email_access";
+            /** @description The domain the key is limited to, and everything under it: a key for firma.ro also covers news.firma.ro, one for news.firma.ro only news.firma.ro. Empty for a key that works with every domain of the account. */
+            domain: string;
+            /** @description The start of the key, as the dashboard shows it. */
+            token_prefix: string;
+            /** @description UTC, "YYYY-MM-DD HH:MM:SS". */
+            created_at: string;
         };
         ContentCheck: {
             /** @constant */
@@ -1047,8 +1088,8 @@ export interface operations {
                      * @enum {string}
                      */
                     visibility?: "public" | "private";
-                    /** @description One of your sending domains. Broadcasts to this audience are sent from it or its subdomains, and their unsubscribe page lists it. */
-                    domain: string;
+                    /** @description Optional: the sending domain it belongs to, one of the key's domains (news.firma.ro, say, so its confirmation emails come from there). Left out, the key's own domain, or for a key on all domains the account's only domain (with several, name one). Broadcasts to this audience are sent from its brand, and their unsubscribe page lists it. */
+                    domain?: string;
                 };
             };
         };
@@ -1066,7 +1107,7 @@ export interface operations {
                      *       "name": "Newsletter",
                      *       "description": "",
                      *       "visibility": "public",
-                     *       "domain": "yourdomain.com",
+                     *       "domain": "news.yourdomain.com",
                      *       "created_at": "2026-03-01 09:00:00"
                      *     }
                      */
@@ -1899,6 +1940,7 @@ export interface operations {
                      *           "id": "…",
                      *           "name": "Order shipped",
                      *           "subject": "Order {{order_id}} is on its way",
+                     *           "domain": "yourdomain.com",
                      *           "created_at": "2026-03-01 09:00:00",
                      *           "updated_at": "2026-03-01 09:00:00"
                      *         }
@@ -1935,6 +1977,8 @@ export interface operations {
                     html: string;
                     /** @description Optional plain-text version, same placeholders. */
                     text?: string;
+                    /** @description Optional: the sending domain it belongs to, one of the key's domains. Left out, the key's own domain (none for a key on all domains). */
+                    domain?: string;
                 };
             };
         };
@@ -1950,6 +1994,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
+                     *       "domain": "yourdomain.com",
                      *       "subject": "Order {{order_id}} is on its way",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -1998,6 +2043,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
+                     *       "domain": "yourdomain.com",
                      *       "subject": "Order {{order_id}} is on its way",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -2071,6 +2117,8 @@ export interface operations {
                     preview_text?: string;
                     html?: string;
                     text?: string;
+                    /** @description Moves it to another of the key's domains. */
+                    domain?: string;
                 };
             };
         };
@@ -2086,6 +2134,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
+                     *       "domain": "yourdomain.com",
                      *       "subject": "Your order {{order_id}} has shipped",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -2103,6 +2152,41 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["TemplateSaved"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    getApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "object": "api_key",
+                     *       "name": "Site",
+                     *       "permission": "full_access",
+                     *       "domain": "firma.ro",
+                     *       "token_prefix": "meil_3f9a1c",
+                     *       "created_at": "2026-10-21 09:00:00"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiKey"];
                 };
             };
             401: components["responses"]["Error"];
