@@ -79,7 +79,7 @@ export interface paths {
         put?: never;
         /**
          * POST /audiences
-         * @description Creates an audience. domain is optional: one of the key's domains, news.firma.ro say, so its confirmation emails come from there. Left out, the audience belongs to the key's domain. A key on all domains puts it on the account's only domain, and has to name one when there are several. Its broadcasts are sent from its domain or subdomains, and their unsubscribe page lists it.
+         * @description Creates an audience. domain is optional: one of the key's domains, news.example.com say, so its confirmation emails come from there. Left out, the audience belongs to the key's domain. A key on all domains puts it on the account's only domain, and has to name one when there are several. Its broadcasts are sent from its domain or subdomains, and their unsubscribe page lists it.
          *
          *     API key: full access.
          */
@@ -760,7 +760,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             permission: "full_access" | "broadcast_access" | "email_access";
-            /** @description The domain the key is limited to, and everything under it: a key for firma.ro also covers news.firma.ro, one for news.firma.ro only news.firma.ro. Empty for a key that works with every domain of the account. */
+            /** @description The domain the key is limited to, and everything under it: a key for example.com also covers news.example.com, one for news.example.com only news.example.com. Empty for a key that works with every domain of the account. */
             domain: string;
             /** @description The start of the key, as the dashboard shows it. */
             token_prefix: string;
@@ -879,7 +879,7 @@ export interface operations {
                      *           "cc": [],
                      *           "bcc": [],
                      *           "reply_to": null,
-                     *           "from": "Your Company <you@yourdomain.com>",
+                     *           "from": "Your Company <you@example.com>",
                      *           "subject": "Hello",
                      *           "template_id": null,
                      *           "created_at": "2026-08-30 12:00:00",
@@ -911,7 +911,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Sender, on a domain verified in your account. "Name <you@yourdomain.com>" works. */
+                    /** @description Sender, on a domain verified in your account. "Name <you@example.com>" works. */
                     from: string;
                     /** @description One address, a comma-separated list, or an array. to + cc + bcc: at most 50. */
                     to: string | string[];
@@ -1004,7 +1004,7 @@ export interface operations {
                      *       "cc": [],
                      *       "bcc": [],
                      *       "reply_to": null,
-                     *       "from": "Your Company <you@yourdomain.com>",
+                     *       "from": "Your Company <you@example.com>",
                      *       "subject": "Hello",
                      *       "html": "…",
                      *       "text": "",
@@ -1054,7 +1054,7 @@ export interface operations {
                      *           "name": "Newsletter",
                      *           "description": "",
                      *           "visibility": "public",
-                     *           "domain": "yourdomain.com",
+                     *           "domain": "example.com",
                      *           "created_at": "2026-03-01 09:00:00"
                      *         }
                      *       ]
@@ -1088,7 +1088,7 @@ export interface operations {
                      * @enum {string}
                      */
                     visibility?: "public" | "private";
-                    /** @description Optional: the sending domain it belongs to, one of the key's domains (news.firma.ro, say, so its confirmation emails come from there). Left out, the key's own domain, or for a key on all domains the account's only domain (with several, name one). Broadcasts to this audience are sent from its brand, and their unsubscribe page lists it. */
+                    /** @description Optional: the sending domain it belongs to, one of the key's domains (news.example.com, say, so its confirmation emails come from there). Left out, the key's own domain, or for a key on all domains the account's only domain (with several, name one). Broadcasts to this audience are sent from its brand, and their unsubscribe page lists it. */
                     domain?: string;
                 };
             };
@@ -1107,7 +1107,7 @@ export interface operations {
                      *       "name": "Newsletter",
                      *       "description": "",
                      *       "visibility": "public",
-                     *       "domain": "news.yourdomain.com",
+                     *       "domain": "news.example.com",
                      *       "created_at": "2026-03-01 09:00:00"
                      *     }
                      */
@@ -1145,7 +1145,7 @@ export interface operations {
                      *       "name": "Newsletter",
                      *       "description": "",
                      *       "visibility": "public",
-                     *       "domain": "yourdomain.com",
+                     *       "domain": "example.com",
                      *       "created_at": "2026-03-01 09:00:00",
                      *       "contacts_count": 842
                      *     }
@@ -1658,7 +1658,7 @@ export interface operations {
                      *       "object": "broadcast",
                      *       "id": "…",
                      *       "audience_id": "…",
-                     *       "from": "Your Company <news@yourdomain.com>",
+                     *       "from": "Your Company <news@example.com>",
                      *       "reply_to": null,
                      *       "subject": "March newsletter",
                      *       "preview_text": null,
@@ -1766,7 +1766,7 @@ export interface operations {
                      *       "object": "broadcast",
                      *       "id": "…",
                      *       "audience_id": "…",
-                     *       "from": "Your Company <news@yourdomain.com>",
+                     *       "from": "Your Company <news@example.com>",
                      *       "reply_to": null,
                      *       "subject": "March newsletter: free delivery",
                      *       "preview_text": null,
@@ -1940,7 +1940,7 @@ export interface operations {
                      *           "id": "…",
                      *           "name": "Order shipped",
                      *           "subject": "Order {{order_id}} is on its way",
-                     *           "domain": "yourdomain.com",
+                     *           "domain": "example.com",
                      *           "created_at": "2026-03-01 09:00:00",
                      *           "updated_at": "2026-03-01 09:00:00"
                      *         }
@@ -1994,7 +1994,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
-                     *       "domain": "yourdomain.com",
+                     *       "domain": "example.com",
                      *       "subject": "Order {{order_id}} is on its way",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -2043,7 +2043,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
-                     *       "domain": "yourdomain.com",
+                     *       "domain": "example.com",
                      *       "subject": "Order {{order_id}} is on its way",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -2134,7 +2134,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
-                     *       "domain": "yourdomain.com",
+                     *       "domain": "example.com",
                      *       "subject": "Your order {{order_id}} has shipped",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -2181,7 +2181,7 @@ export interface operations {
                      *       "object": "api_key",
                      *       "name": "Site",
                      *       "permission": "full_access",
-                     *       "domain": "firma.ro",
+                     *       "domain": "example.com",
                      *       "token_prefix": "meil_3f9a1c",
                      *       "created_at": "2026-10-21 09:00:00"
                      *     }

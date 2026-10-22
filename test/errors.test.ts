@@ -91,7 +91,7 @@ describe('202 under_review is a result, not an error', () => {
 
   it('from broadcasts.create, with the id from the answer', async () => {
     const { fetch } = mockFetch(json({ id: 'b9', error: held }, 202));
-    const result = await client(fetch).broadcasts.create({ audience_id: 'a1', from: 'n@x.ro', subject: 'S', html: 'H', send: true });
+    const result = await client(fetch).broadcasts.create({ audience_id: 'a1', from: 'n@example.org', subject: 'S', html: 'H', send: true });
     expect(result).toEqual({ object: 'broadcast', id: 'b9', status: 'under_review', under_review: true, message: held.message });
   });
 

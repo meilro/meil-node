@@ -24,8 +24,8 @@ Field names are the API's own (`reply_to`, `template_id`, `audience_id`), so the
 
 ```ts
 const { id } = await meil.emails.send({
-  from: 'Magazinul Tău <comenzi@magazin.ro>',
-  to: 'ana@example.com', // a string, "a@x.ro, b@y.ro", or an array; at most 50 recipients with cc and bcc
+  from: 'Magazinul Tău <comenzi@example.com>',
+  to: 'ana@example.com', // a string, "a@example.org, b@example.net", or an array; at most 50 recipients with cc and bcc
   subject: 'Comanda 2451 a fost expediată',
   html: '<p>Salut Ana, comanda ta e pe drum.</p>',
 });
@@ -35,7 +35,7 @@ With a saved template and its placeholders:
 
 ```ts
 await meil.emails.send({
-  from: 'Magazinul Tău <comenzi@magazin.ro>',
+  from: 'Magazinul Tău <comenzi@example.com>',
   to: 'ana@example.com',
   template_id: 'tpl_id',
   variables: { name: 'Ana', order_id: 2451 },
@@ -48,12 +48,12 @@ With attachments. Pass the file's bytes (a `Buffer`, `Uint8Array` or `ArrayBuffe
 import { readFile } from 'node:fs/promises';
 
 await meil.emails.send({
-  from: 'Magazinul Tău <facturi@magazin.ro>',
+  from: 'Magazinul Tău <facturi@example.com>',
   to: 'ana@example.com',
   subject: 'Factura pentru comanda 2451',
   heading: 'Mulțumim pentru comandă', // no html: built in your domain's branding
   body: 'Factura este atașată.',
-  button: { label: 'Vezi comanda', url: 'https://magazin.ro/comenzi/2451' },
+  button: { label: 'Vezi comanda', url: 'https://example.com/comenzi/2451' },
   attachments: [{ filename: 'factura-2451.pdf', content: await readFile('factura-2451.pdf') }],
 });
 ```
@@ -132,7 +132,7 @@ await meil.emails.get(id, { timeout: 5_000, maxRetries: 0 }); // per call; also 
 const result = await meil.broadcasts.create(
   {
     audience_id: 'aud_id',
-    from: 'Magazinul Tău <noutati@magazin.ro>',
+    from: 'Magazinul Tău <noutati@example.com>',
     subject: 'Noutăți în martie',
     html: '<h1>Salut {{first_name|acolo}}</h1> … <a href="{{unsubscribe_url}}">Dezabonare</a>',
     send: true, // or scheduled_at: new Date('2026-11-01T09:00:00+02:00') on paid plans; or neither for a draft
@@ -246,7 +246,7 @@ npm install
 npm test           # mocked fetch, no network
 npm run typecheck
 npm run build      # dist/: ESM, CommonJS and .d.ts
-MEIL_API_KEY=... MEIL_TEST_DOMAIN=yourdomain.ro npm run test:live   # real API; mails only the SES simulator
+MEIL_API_KEY=... MEIL_TEST_DOMAIN=example.com npm run test:live   # real API; mails only the SES simulator
 ```
 
 ## License

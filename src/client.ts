@@ -11,7 +11,7 @@ import { Templates } from './resources/templates';
  *
  * ```ts
  * const meil = new Meil('meil_...');
- * await meil.emails.send({ from: 'Shop <hello@shop.ro>', to: 'ana@example.com', subject: 'Hi', html: '<p>Hi</p>' });
+ * await meil.emails.send({ from: 'Shop <hello@example.com>', to: 'ana@example.com', subject: 'Hi', html: '<p>Hi</p>' });
  * ```
  */
 export class Meil {

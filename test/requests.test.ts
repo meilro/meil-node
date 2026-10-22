@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { client, json, mockFetch } from './helpers';
 
-const SEND = { from: 'a@x.ro', to: ['b@y.ro', 'c@y.ro'], subject: 'S', html: 'H' };
+const SEND = { from: 'a@example.org', to: ['b@example.net', 'c@example.net'], subject: 'S', html: 'H' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 describe('idempotency keys', () => {
@@ -19,7 +19,7 @@ describe('idempotency keys', () => {
     const { fetch, calls } = mockFetch(json({ id: 'e1' }), json({ id: 'b1', object: 'broadcast', status: 'draft', scheduled_at: null }));
     const meil = client(fetch);
     await meil.emails.send(SEND, { idempotencyKey: 'order-2451-confirmation' });
-    await meil.broadcasts.create({ audience_id: 'a1', from: 'n@x.ro', subject: 'S', html: 'H' }, { idempotencyKey: 'march-newsletter' });
+    await meil.broadcasts.create({ audience_id: 'a1', from: 'n@example.org', subject: 'S', html: 'H' }, { idempotencyKey: 'march-newsletter' });
     expect(calls[0]!.headers['idempotency-key']).toBe('order-2451-confirmation');
     expect(calls[1]!.headers['idempotency-key']).toBe('march-newsletter');
   });
@@ -27,7 +27,7 @@ describe('idempotency keys', () => {
   it('broadcasts.create makes one too; other POSTs send none', async () => {
     const { fetch, calls } = mockFetch(json({}), json({}), json({}), json({}));
     const meil = client(fetch);
-    await meil.broadcasts.create({ audience_id: 'a1', from: 'n@x.ro', subject: 'S', html: 'H' });
+    await meil.broadcasts.create({ audience_id: 'a1', from: 'n@example.org', subject: 'S', html: 'H' });
     await meil.broadcasts.send('b1');
     await meil.templates.create({ name: 'T', html: 'H' });
     await meil.content.check({ html: 'H' });
@@ -98,7 +98,7 @@ describe('request bodies', () => {
     const { fetch, calls } = mockFetch(json({}), json({}));
     const meil = client(fetch);
     await meil.broadcasts.schedule('b1', '2030-03-01T09:00:00+02:00');
-    await meil.broadcasts.create({ audience_id: 'a1', from: 'n@x.ro', subject: 'S', html: 'H', scheduled_at: '2030-03-01T09:00:00Z' });
+    await meil.broadcasts.create({ audience_id: 'a1', from: 'n@example.org', subject: 'S', html: 'H', scheduled_at: '2030-03-01T09:00:00Z' });
     expect(calls[0]!.body).toEqual({ scheduled_at: '2030-03-01T09:00:00+02:00' });
     expect((calls[1]!.body as { scheduled_at: string }).scheduled_at).toBe('2030-03-01T09:00:00Z');
   });

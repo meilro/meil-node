@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConflictError, ConnectionError, RateLimitError, ServerError, ValidationError } from '../src/index';
 import { apiError, client, json, mockFetch } from './helpers';
 
-const SEND = { from: 'a@x.ro', to: 'b@y.ro', subject: 'S', html: 'H' };
+const SEND = { from: 'a@example.org', to: 'b@example.net', subject: 'S', html: 'H' };
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -115,7 +115,7 @@ describe('retries', () => {
   it('never retries a POST without an Idempotency-Key', async () => {
     for (const reply of [new TypeError('fetch failed'), new Response('', { status: 503 }), apiError(429, 'rate_limit_exceeded', {}, { 'Retry-After': '1' })]) {
       const { fetch, calls, times } = timedFetch(reply);
-      const out = (await settle(client(fetch).contacts.add({ audience_ids: ['a1'], email: 'c@y.ro' }))) as { error: Error };
+      const out = (await settle(client(fetch).contacts.add({ audience_ids: ['a1'], email: 'c@example.net' }))) as { error: Error };
       expect(out.error).toBeInstanceOf(Error);
       expect(calls).toHaveLength(1);
       expect(calls[0]!.headers['idempotency-key']).toBeUndefined();

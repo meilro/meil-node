@@ -1,5 +1,5 @@
 /**
- * Against the real API: `MEIL_API_KEY=... MEIL_TEST_DOMAIN=yourdomain.ro npm run test:live`.
+ * Against the real API: `MEIL_API_KEY=... MEIL_TEST_DOMAIN=example.com npm run test:live`.
  *
  * Mails only Amazon SES's mailbox simulator, keeps 0.3 s between calls,
  * never sends a broadcast, and deletes everything it creates.
