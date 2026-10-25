@@ -151,11 +151,55 @@ export interface paths {
         put?: never;
         /**
          * POST /contacts
-         * @description Adds a contact to the audiences in audience_ids (a list, also for just one, up to 20). A contact is one person, shared by every audience and domain on your account, and the properties belong to them. If the address already exists, it only gets the properties it does not have yet. Existing ones stay as they are, and any you sent with a different value are listed in kept_properties. Change them with PATCH /api/contacts/{email}. With "confirm": true the contact waits until they confirm: they get one email from the audience's domain, and pressing its button subscribes them to every audience in the call and saves confirmed_at and confirmed_ip in their properties (from the first confirmation, never changed after). Until then they get nothing, and if they have not confirmed within 7 days they are deleted. Someone who has confirmed once is added straight away, without another email. Optional: from, reply_to, confirmed_url (your page they land on after confirming, on the audience's domain) and language (ro or en).
+         * @description Adds a contact to the audiences in audience_ids (a list, also for just one, up to 20). A contact is one person, shared by every audience and domain on your account, and the properties belong to them. If the address already exists, it only gets the properties it does not have yet. Existing ones stay as they are, and any you sent with a different value are listed in kept_properties. Change them with PATCH /api/contacts/{email}. With "confirm": true the contact waits until they confirm: they get one email from the audience's domain, and pressing its button subscribes them to every audience in the call and saves confirmed_at and confirmed_ip in their properties (from the first confirmation, never changed after). Until then they get nothing, and if they have not confirmed within 7 days they are deleted. Someone who has already confirmed a list on the same domain is added straight away, without another email. Another domain of your account asks again. Optional: from, reply_to, confirmed_url (your page they land on after confirming, on the audience's domain) and language (ro or en). With confirm_page instead of confirmed_url, the button in the email opens your own page, on the audience's domain, like https://example.com/confirm, and we add the token to the link (?token=…). You show the button there and confirm with POST /api/contacts/confirm.
          *
          *     API key: full access.
          */
         post: operations["addContact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/confirm/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /contacts/confirm/{token}
+         * @description For your own confirmation page (confirm_page when adding the contact): tells you where the sign-up stands, without changing anything. status is pending (waiting, the link works), confirmed (they confirmed, now or earlier) or expired (the link is over 7 days old, or there is nothing left to confirm: the person unsubscribed, was deleted, or the address is blocked). You also get the address, the audiences by name and when the link stops working, so your page can show its button or say the link has expired. A token that is not your account's, or not from the key's domains, is a 404.
+         *
+         *     API key: full access.
+         */
+        get: operations["getConfirmation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /contacts/confirm
+         * @description Confirms the sign-up when the person presses the button on your page. Send token from the link and, optionally, ip: the visitor's IP address, saved in confirmed_ip as proof (without it, confirmed_ip stays empty). The answer is the same as when checking, plus already_confirmed. Calling it twice does no harm, and an expired link confirms nothing and answers with status expired, not an error. Important: confirm only when the button is pressed, never when the page opens. Outlook and company mail filters open every link to scan it, and a page that confirms on opening would subscribe everyone.
+         *
+         *     API key: full access.
+         */
+        post: operations["confirmContact"];
         delete?: never;
         options?: never;
         head?: never;
@@ -419,7 +463,7 @@ export interface paths {
         };
         /**
          * GET /key
-         * @description Returns the key making the request: its name, permission and the domain it is limited to, empty for a key that works with every domain. A key limited to a main domain also covers its subdomains. Use it to check that an integration was given the right key for its site. Works with any key.
+         * @description Returns the key making the request: its name, permission and the domain it is limited to, empty for a key that works with every domain. The limit is always a main domain, with all its subdomains. Use it to check that an integration was given the right key for its site. Works with any key.
          *
          *     API key: any key.
          */
@@ -629,6 +673,46 @@ export interface components {
                 unsubscribed_at: string | null;
             }[];
         };
+        Confirmation: {
+            /** @constant */
+            object: "confirmation";
+            /**
+             * @description pending: waiting, the link works. confirmed: they confirmed, now or earlier. expired: the link is over 7 days old, or nothing is left to confirm (unsubscribed, deleted, or the address is blocked).
+             * @enum {string}
+             */
+            status: "pending" | "confirmed" | "expired";
+            email: string;
+            /** @description The audiences the link confirms, those that still exist. */
+            audiences: {
+                id: string;
+                name: string;
+            }[];
+            /** @description UTC, "YYYY-MM-DD HH:MM:SS": when the person first confirmed (any audience). null if never. */
+            confirmed_at: string | null;
+            /** @description UTC, "YYYY-MM-DD HH:MM:SS": when the link stops working. */
+            expires_at: string;
+        };
+        ConfirmationResult: {
+            /** @constant */
+            object: "confirmation";
+            /**
+             * @description pending: waiting, the link works. confirmed: they confirmed, now or earlier. expired: the link is over 7 days old, or nothing is left to confirm (unsubscribed, deleted, or the address is blocked).
+             * @enum {string}
+             */
+            status: "pending" | "confirmed" | "expired";
+            email: string;
+            /** @description The audiences the link confirms, those that still exist. */
+            audiences: {
+                id: string;
+                name: string;
+            }[];
+            /** @description UTC, "YYYY-MM-DD HH:MM:SS": when the person first confirmed (any audience). null if never. */
+            confirmed_at: string | null;
+            /** @description UTC, "YYYY-MM-DD HH:MM:SS": when the link stops working. */
+            expires_at: string;
+            /** @description true when they had confirmed before this call: nothing changed. */
+            already_confirmed: boolean;
+        };
         ContactDeleted: {
             /** @constant */
             object: "contact";
@@ -760,7 +844,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             permission: "full_access" | "broadcast_access" | "email_access";
-            /** @description The domain the key is limited to, and everything under it: a key for example.com also covers news.example.com, one for news.example.com only news.example.com. Empty for a key that works with every domain of the account. */
+            /** @description The main domain the key is limited to, with all its subdomains: a key for example.com also covers news.example.com. Empty for a key that works with every domain of the account. */
             domain: string;
             /** @description The start of the key, as the dashboard shows it. */
             token_prefix: string;
@@ -879,7 +963,7 @@ export interface operations {
                      *           "cc": [],
                      *           "bcc": [],
                      *           "reply_to": null,
-                     *           "from": "Your Company <you@example.com>",
+                     *           "from": "Your Company <you@yourdomain.com>",
                      *           "subject": "Hello",
                      *           "template_id": null,
                      *           "created_at": "2026-08-30 12:00:00",
@@ -911,7 +995,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Sender, on a domain verified in your account. "Name <you@example.com>" works. */
+                    /** @description Sender, on a domain verified in your account. "Name <you@yourdomain.com>" works. */
                     from: string;
                     /** @description One address, a comma-separated list, or an array. to + cc + bcc: at most 50. */
                     to: string | string[];
@@ -1004,7 +1088,7 @@ export interface operations {
                      *       "cc": [],
                      *       "bcc": [],
                      *       "reply_to": null,
-                     *       "from": "Your Company <you@example.com>",
+                     *       "from": "Your Company <you@yourdomain.com>",
                      *       "subject": "Hello",
                      *       "html": "…",
                      *       "text": "",
@@ -1054,7 +1138,7 @@ export interface operations {
                      *           "name": "Newsletter",
                      *           "description": "",
                      *           "visibility": "public",
-                     *           "domain": "example.com",
+                     *           "domain": "yourdomain.com",
                      *           "created_at": "2026-03-01 09:00:00"
                      *         }
                      *       ]
@@ -1107,7 +1191,7 @@ export interface operations {
                      *       "name": "Newsletter",
                      *       "description": "",
                      *       "visibility": "public",
-                     *       "domain": "news.example.com",
+                     *       "domain": "news.yourdomain.com",
                      *       "created_at": "2026-03-01 09:00:00"
                      *     }
                      */
@@ -1145,7 +1229,7 @@ export interface operations {
                      *       "name": "Newsletter",
                      *       "description": "",
                      *       "visibility": "public",
-                     *       "domain": "example.com",
+                     *       "domain": "yourdomain.com",
                      *       "created_at": "2026-03-01 09:00:00",
                      *       "contacts_count": 842
                      *     }
@@ -1266,7 +1350,7 @@ export interface operations {
                     last_name?: string;
                     /** @description Your own custom fields, usable as {{placeholders}}. Shared by every audience: an existing contact only gains keys it does not have yet. */
                     properties?: Record<string, never>;
-                    /** @description true: the contact waits until they confirm. They get one email from the audience's domain, and pressing its button subscribes them to every audience in the call and stores confirmed_at and confirmed_ip (the first confirmation, never overwritten) on the contact. Someone who confirmed before is added straight away, without another email. Unconfirmed sign-ups are deleted after 7 days. */
+                    /** @description true: the contact waits until they confirm. They get one email from the audience's domain, and pressing its button subscribes them to every audience in the call and stores confirmed_at and confirmed_ip (the first confirmation, never overwritten) on the contact. Someone who already confirmed a list on the same domain is added straight away, without another email. Another domain of the account asks again. Unconfirmed sign-ups are deleted after 7 days. */
                     confirm?: boolean;
                     /** @description With confirm: who the confirmation email comes from. Default no-reply@ the audience's domain, with its default sender name. */
                     from?: string;
@@ -1277,6 +1361,8 @@ export interface operations {
                      * @description With confirm: your page to send the person to after they confirm. Must be on the audience's domain or a subdomain.
                      */
                     confirmed_url?: string;
+                    /** @description With confirm, instead of confirmed_url: your own confirmation page, like https://example.com/confirm, which the email's button opens instead of meil.ro's. The token is added to its link as ?token=… (&token=… when it already has a query). Must be on the audience's domain or a subdomain. The page confirms with POST /api/contacts/confirm when the person presses its button. */
+                    confirm_page?: string;
                     /**
                      * @description With confirm: the language of the email and page. Default your account's language.
                      * @enum {string}
@@ -1319,6 +1405,98 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["Contact"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    getConfirmation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "object": "confirmation",
+                     *       "status": "pending",
+                     *       "email": "a@b.com",
+                     *       "audiences": [
+                     *         {
+                     *           "id": "aud_123",
+                     *           "name": "Newsletter"
+                     *         }
+                     *       ],
+                     *       "confirmed_at": null,
+                     *       "expires_at": "2026-03-08 09:00:00"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Confirmation"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    confirmContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The token parameter of the link that opened your confirmation page, unchanged. */
+                    token: string;
+                    /** @description Optional: the visitor's IP address (IPv4 or IPv6), saved in the contact's confirmed_ip as proof. Without it, confirmed_ip stays empty. */
+                    ip?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "object": "confirmation",
+                     *       "status": "confirmed",
+                     *       "email": "a@b.com",
+                     *       "audiences": [
+                     *         {
+                     *           "id": "aud_123",
+                     *           "name": "Newsletter"
+                     *         }
+                     *       ],
+                     *       "confirmed_at": "2026-03-01 09:14:02",
+                     *       "expires_at": "2026-03-08 09:00:00",
+                     *       "already_confirmed": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ConfirmationResult"];
                 };
             };
             401: components["responses"]["Error"];
@@ -1658,7 +1836,7 @@ export interface operations {
                      *       "object": "broadcast",
                      *       "id": "…",
                      *       "audience_id": "…",
-                     *       "from": "Your Company <news@example.com>",
+                     *       "from": "Your Company <news@yourdomain.com>",
                      *       "reply_to": null,
                      *       "subject": "March newsletter",
                      *       "preview_text": null,
@@ -1766,7 +1944,7 @@ export interface operations {
                      *       "object": "broadcast",
                      *       "id": "…",
                      *       "audience_id": "…",
-                     *       "from": "Your Company <news@example.com>",
+                     *       "from": "Your Company <news@yourdomain.com>",
                      *       "reply_to": null,
                      *       "subject": "March newsletter: free delivery",
                      *       "preview_text": null,
@@ -1940,7 +2118,7 @@ export interface operations {
                      *           "id": "…",
                      *           "name": "Order shipped",
                      *           "subject": "Order {{order_id}} is on its way",
-                     *           "domain": "example.com",
+                     *           "domain": "yourdomain.com",
                      *           "created_at": "2026-03-01 09:00:00",
                      *           "updated_at": "2026-03-01 09:00:00"
                      *         }
@@ -1994,7 +2172,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
-                     *       "domain": "example.com",
+                     *       "domain": "yourdomain.com",
                      *       "subject": "Order {{order_id}} is on its way",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -2043,7 +2221,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
-                     *       "domain": "example.com",
+                     *       "domain": "yourdomain.com",
                      *       "subject": "Order {{order_id}} is on its way",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",
@@ -2134,7 +2312,7 @@ export interface operations {
                      *       "object": "template",
                      *       "id": "…",
                      *       "name": "Order shipped",
-                     *       "domain": "example.com",
+                     *       "domain": "yourdomain.com",
                      *       "subject": "Your order {{order_id}} has shipped",
                      *       "preview_text": "Track your parcel from the link inside",
                      *       "html": "<p>Hi {{first_name|there}}, order {{order_id}} is on its way.</p>",

@@ -68,6 +68,17 @@ export type UpdateContactParams = Omit<Body<'updateContact'>, 'properties'> & {
 export type ContactDetail = Omit<Schemas['ContactDetail'], 'properties'> & { properties: ContactProperties };
 export type ContactDeleted = Schemas['ContactDeleted'];
 
+/** Where a sign-up made with `confirm: true` stands, for your own confirmation page (`confirm_page`). */
+export type Confirmation = Schemas['Confirmation'];
+/** `pending` (waiting, the link works), `confirmed` (now or before) or `expired` (nothing left it can confirm). */
+export type ConfirmationStatus = Confirmation['status'];
+/** What `contacts.confirm()` answers: the confirmation, and whether it had been confirmed before this call. */
+export type ConfirmationResult = Schemas['ConfirmationResult'];
+export interface ConfirmContactParams {
+  /** The visitor's IP address, saved in the contact's `confirmed_ip` as proof. Without it, `confirmed_ip` stays empty. */
+  ip?: string;
+}
+
 // ---- Broadcasts ------------------------------------------------------------
 
 export type CreateBroadcastParams = Omit<Body<'createBroadcast'>, 'scheduled_at'> & {

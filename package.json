@@ -1,6 +1,6 @@
 {
   "name": "@meilro/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Official Node.js and TypeScript client for the meil.ro email API",
   "keywords": [
     "meil",

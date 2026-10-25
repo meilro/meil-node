@@ -67,6 +67,8 @@ describe('every operation', () => {
     ['listContacts', (m) => m.audiences.listContacts('a1', { limit: 1000 }), 'GET', '/audiences/a1/contacts?limit=1000', undefined],
     ['addContact', (m) => m.contacts.add({ audience_ids: ['a1'], email: 'c@example.net', properties: { city: 'Cluj' }, confirm: true }), 'POST', '/contacts', { audience_ids: ['a1'], email: 'c@example.net', properties: { city: 'Cluj' }, confirm: true }],
     ['getContact', (m) => m.contacts.get('c@example.net'), 'GET', '/contacts/c%40example.net', undefined],
+    ['getConfirmation', (m) => m.contacts.getConfirmation('tok.1'), 'GET', '/contacts/confirm/tok.1', undefined],
+    ['confirmContact', (m) => m.contacts.confirm('tok.1', { ip: '203.0.113.7' }), 'POST', '/contacts/confirm', { token: 'tok.1', ip: '203.0.113.7' }],
     ['updateContact', (m) => m.contacts.update('c@example.net', { properties: { old: null }, audiences: { a1: true, a2: false } }), 'PATCH', '/contacts/c%40example.net', { properties: { old: null }, audiences: { a1: true, a2: false } }],
     ['deleteContact', (m) => m.contacts.delete('c@example.net'), 'DELETE', '/contacts/c%40example.net', undefined],
     ['removeContact', (m) => m.contacts.remove('a1', 'c@example.net'), 'DELETE', '/audiences/a1/contacts/c%40example.net', undefined],
@@ -86,8 +88,8 @@ describe('every operation', () => {
     ['checkContent', (m) => m.content.check({ html: '<p>Hi</p>' }), 'POST', '/content/check', { html: '<p>Hi</p>' }],
   ];
 
-  it('covers all 27', () => {
-    expect(new Set(cases.map((c) => c[0])).size).toBe(27);
+  it('covers all 29', () => {
+    expect(new Set(cases.map((c) => c[0])).size).toBe(29);
   });
 
   it.each(cases)('%s', async (_op, call, method, path, body) => {

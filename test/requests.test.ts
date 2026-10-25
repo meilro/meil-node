@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { client, json, mockFetch } from './helpers';
+import { NotFoundError } from '../src/index';
+import { apiError, client, json, mockFetch } from './helpers';
 
 const SEND = { from: 'a@example.org', to: ['b@example.net', 'c@example.net'], subject: 'S', html: 'H' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -108,5 +109,64 @@ describe('request bodies', () => {
     const params = { ...SEND, attachments: [{ filename: 'a.txt', content: new Uint8Array([104, 105]) }] };
     await client(fetch).emails.send(params);
     expect(params.attachments[0]!.content).toBeInstanceOf(Uint8Array);
+  });
+});
+
+describe('your own confirmation page', () => {
+  const TOKEN = 'eyJ1IjoxLCJlIjoiYUBiLmNvbSJ9.4f1c0a9b';
+  const PENDING = {
+    object: 'confirmation',
+    status: 'pending',
+    email: 'a@b.com',
+    audiences: [{ id: 'aud_1', name: 'Newsletter' }],
+    confirmed_at: null,
+    expires_at: '2026-03-08 09:00:00',
+  };
+
+  it('contacts.add passes confirm_page through as it is', async () => {
+    const { fetch, calls } = mockFetch(json({}));
+    await client(fetch).contacts.add({
+      audience_ids: ['aud_1'],
+      email: 'a@b.com',
+      confirm: true,
+      confirm_page: 'https://example.com/confirm',
+    });
+    expect(calls[0]!.body).toMatchObject({ confirm: true, confirm_page: 'https://example.com/confirm' });
+  });
+
+  it('getConfirmation reads the token from the path and changes nothing', async () => {
+    const { fetch, calls } = mockFetch(json(PENDING));
+    const answer = await client(fetch).contacts.getConfirmation(TOKEN);
+    expect(calls[0]!.method).toBe('GET');
+    expect(calls[0]!.url).toBe(`https://api.meil.ro/contacts/confirm/${TOKEN}`);
+    expect(answer.status).toBe('pending');
+  });
+
+  it('confirm posts the token and the visitor IP, and leaves out an empty IP', async () => {
+    const done = { ...PENDING, status: 'confirmed', confirmed_at: '2026-03-01 09:14:02', already_confirmed: false };
+    const { fetch, calls } = mockFetch(json(done), json(done), json(done));
+    const meil = client(fetch);
+    const answer = await meil.contacts.confirm(TOKEN, { ip: '203.0.113.7' });
+    await meil.contacts.confirm(TOKEN);
+    await meil.contacts.confirm(TOKEN, { ip: '' });
+    expect(calls.map((c) => [c.method, c.url.replace('https://api.meil.ro', ''), c.body])).toEqual([
+      ['POST', '/contacts/confirm', { token: TOKEN, ip: '203.0.113.7' }],
+      ['POST', '/contacts/confirm', { token: TOKEN }],
+      ['POST', '/contacts/confirm', { token: TOKEN }],
+    ]);
+    expect(answer.status).toBe('confirmed');
+    expect(answer.already_confirmed).toBe(false);
+  });
+
+  it('an expired link comes back as a status, not as an error', async () => {
+    const { fetch } = mockFetch(json({ ...PENDING, status: 'expired', already_confirmed: false }));
+    expect((await client(fetch).contacts.confirm(TOKEN)).status).toBe('expired');
+  });
+
+  it('a token that is not valid throws NotFoundError', async () => {
+    const { fetch } = mockFetch(apiError(404, 'not_found'), apiError(404, 'not_found'));
+    const meil = client(fetch);
+    await expect(meil.contacts.getConfirmation('nope')).rejects.toBeInstanceOf(NotFoundError);
+    await expect(meil.contacts.confirm('nope')).rejects.toBeInstanceOf(NotFoundError);
   });
 });
