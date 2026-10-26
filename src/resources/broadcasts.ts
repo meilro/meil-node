@@ -12,8 +12,10 @@ import type {
   BroadcastDraft,
   BroadcastList,
   BroadcastQueued,
+  BroadcastTest,
   BroadcastUnderReview,
   CreateBroadcastParams,
+  TestBroadcastParams,
   UpdateBroadcastParams,
 } from '../types';
 
@@ -79,6 +81,36 @@ export class Broadcasts {
   async send(id: string, options?: RequestOptions): Promise<BroadcastQueued | BroadcastUnderReview> {
     const response = await this.http.request({ method: 'POST', path: `/broadcasts/${segment(id)}/send`, options });
     return underReview(response, id) ?? (response.data as BroadcastQueued);
+  }
+
+  /**
+   * A test to your test audience (made on the Audiences page of the
+   * dashboard): each of its contacts gets a copy filled in with their own
+   * data, with "[Test]" before the subject. Pass a broadcast id to test that
+   * broadcast, which stays as it is, or its content to test it without saving
+   * anything. Without a test audience that has contacts it throws a
+   * ValidationError with the code `test_audience_missing`.
+   */
+  async test(broadcast: string | TestBroadcastParams, options: IdempotentRequestOptions = {}): Promise<BroadcastTest> {
+    if (typeof broadcast === 'string') {
+      // POST /broadcasts/{id}/send with audience_id "test". Like send(), no Idempotency-Key.
+      const { data } = await this.http.request({
+        method: 'POST',
+        path: `/broadcasts/${segment(broadcast)}/send`,
+        body: { audience_id: 'test' },
+        options,
+      });
+      return data as BroadcastTest;
+    }
+    // POST /broadcasts with audience_id "test": sent at once, nothing saved.
+    const { data } = await this.http.request({
+      method: 'POST',
+      path: '/broadcasts',
+      body: { ...broadcast, audience_id: 'test' },
+      idempotencyKey: options.idempotencyKey ?? randomUuid(),
+      options,
+    });
+    return data as BroadcastTest;
   }
 
   /** POST /broadcasts/{id}/schedule (paid plans). A Date, or an ISO 8601 string with an offset or Z. */

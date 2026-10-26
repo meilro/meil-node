@@ -93,6 +93,10 @@ export type BroadcastListItem = BroadcastList['data'][number];
 export type Broadcast = Schemas['Broadcast'];
 export type BroadcastStatus = Broadcast['status'];
 export type BroadcastDeleted = Schemas['BroadcastDeleted'];
+/** What `broadcasts.test()` answers: the test audience addresses it went to. */
+export type BroadcastTest = Schemas['BroadcastTest'];
+/** Content to test with `broadcasts.test()` without saving it: a broadcast's fields, minus its audience and when to send. */
+export type TestBroadcastParams = Omit<Body<'createBroadcast'>, 'audience_id' | 'send' | 'scheduled_at'>;
 
 /**
  * Not an API object: what the SDK returns when the API answers 202

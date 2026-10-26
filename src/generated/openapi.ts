@@ -21,11 +21,11 @@ export interface paths {
         put?: never;
         /**
          * POST /emails
-         * @description Sends an email. Put {{unsubscribe_url}} in the html or text and it becomes an unsubscribe link for the first "to" recipient, with a matching List-Unsubscribe header. Transactional email gets no footer from us. {{view_url}} only works in broadcasts and is removed here. Optional: reply_to, cc and bcc (a string or an array), headers (an object of extra headers) and attachments (an array of {filename, content}, with content in base64; up to 20 files and 7 MB in total). to, cc and bcc together take at most 50 addresses. If from has no name, or reply_to is left out, the domain's defaults are used, set on its branding page. Addresses on your suppression list are skipped and listed in the response under suppressed. If no to address is left, the call is refused with 403. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins. Send an Idempotency-Key header (any unique string, up to 255 characters) to make retries safe. Repeating the request with the same key and body within 24 hours returns the first response instead of sending again. The same key with a different body gets 409.
+         * @description Sends an email. Put {{unsubscribe_url}} in the html or text and it becomes an unsubscribe link for the first "to" recipient, with a matching List-Unsubscribe header. Transactional email gets no footer from us. {{view_url}} only works in broadcasts and is removed here. Optional: reply_to, cc and bcc (a string or an array), headers (an object of extra headers) and attachments (an array of {filename, content}, with content in base64; up to 20 files and 7 MB in total). to, cc and bcc together take at most 50 addresses. In headers, ones that would change the sender, the recipients or the delivery (From, To, Cc, Bcc, Received and the like) are left out, and the rest of the email goes out as usual. If from has no name, or reply_to is left out, the domain's defaults are used, set on its branding page. Addresses on your suppression list are skipped and listed in the response under suppressed. If no to address is left, the call is refused with 403. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins. Send an Idempotency-Key header (any unique string, up to 255 characters) to make retries safe. Repeating the request with the same key and body within 24 hours returns the first response instead of sending again. The same key with a different body gets 409.
          *
          *     Placeholders work in every call. Put {{name}} in the subject, html, text, heading, body or code and pass variables (an object of strings or numbers, HTML-escaped in the html). Without variables, nothing is replaced. With it, a placeholder without a fallback must get a value, or the call fails with 422 missing_variables. A fallback, as in {{first_name|there}}, makes it optional. Without a value, we use the recipient's contact data (first_name, last_name, email or a property, only when there is a single recipient), then the fallback.
          *
-         *     No html? Send heading, body (plain text) and optionally code or button {label, url}, and we build the email in your domain's branding (logo, colours and footer, set under Domains > Branding), with a plain-text version. Attachments work the same as with html. Use only one of: html, template_id, or these fields.
+         *     No html? Send heading, body (plain text) and optionally code or button {label, url}, and we build the email in your domain's branding (logo, colours and footer, set under Domains > Branding), with a plain-text version. In body, a blank line (\n\n) starts a new paragraph, a single \n breaks the line, and web addresses become links. Attachments work the same as with html. Use only one of: html, template_id, or these fields.
          *
          *     The same branded email, with a file attached. Works the same with html or template_id.
          *
@@ -271,7 +271,7 @@ export interface paths {
         };
         /**
          * GET /broadcasts
-         * @description Lists your broadcasts, newest first: id, audience_id, subject, status, scheduled_at, created_at, sent_at.
+         * @description Your broadcasts, newest first, without their content or recipient counts. Get one broadcast for those.
          *
          *     API key: full access, or emails and broadcasts.
          */
@@ -282,6 +282,8 @@ export interface paths {
          * @description Creates a broadcast as a draft. Add "send": true to send it right away, or "scheduled_at" (ISO 8601, Plus and Professional only) to send it later. Every broadcast gets a one-click List-Unsubscribe header, plus an unsubscribe footer unless your HTML already contains {{unsubscribe_url}} or the domain has "I have my own unsubscribe page" ticked on its branding page. Put {{view_url}} in the HTML for a link to the email's web version. While a broadcast is going out, "status" can be "canary"; one paused for review shows "under_review": true. reply_to (optional, one address) is where replies go, for example a real inbox when the From address has none. The from address must be on the audience's domain or one of its subdomains. If "send": true is refused, no draft is left behind. Use placeholders like {{first_name|there}} in the subject and html. Each recipient gets their own first_name, last_name, email or custom property, and the text after | is the fallback when the contact has no value. variables (an object of strings or numbers) sets one value for everyone and overrides the contact's own. preview_text (optional, up to 255 characters) is the line inboxes show next to the subject. It goes hidden at the top of the HTML and can hold {{variables}}. A saved template can carry its own; one sent with the call wins. Send an Idempotency-Key header (any unique string, up to 255 characters) to make retries safe. Repeating the request with the same key and body within 24 hours returns the first response instead of sending again. The same key with a different body gets 409.
          *
          *     Pass template_id instead of html to start from a saved template. The broadcast gets a copy of its subject, preview text, html and text, so later edits to the template do not affect it. subject and preview_text are optional and override the template's. template_id cannot be combined with html or text. In a broadcast, a placeholder with no value is left empty, so give it a fallback.
+         *
+         *     Pass "audience_id": "test" to send to your test audience instead of a list. Each of its contacts gets their own copy right away, filled in with their data and with "[Test]" before the subject. No broadcast is saved, and "send" is not needed. Without a test audience that has contacts, you get a test_audience_missing error. You create the test audience on the Audiences page.
          *
          *     API key: full access, or emails and broadcasts.
          */
@@ -337,7 +339,7 @@ export interface paths {
         put?: never;
         /**
          * POST /broadcasts/{id}/send
-         * @description Sends a draft broadcast. While it is going out, "status" can be "canary". A broadcast bigger than what is left of your daily limit goes out in daily slices, and "unqueued" in the response is how many recipients are still waiting.
+         * @description Sends a draft broadcast. While it is going out, "status" can be "canary". A broadcast bigger than what is left of your daily limit goes out in daily slices, and "unqueued" in the response is how many recipients are still waiting. With {"audience_id": "test"} in the body, it goes only to your test audience, as a test, and the broadcast stays as it is.
          *
          *     API key: full access, or emails and broadcasts.
          */
@@ -761,6 +763,12 @@ export interface components {
             /** @description Recipients still waiting for a later day (daily limit). */
             unqueued?: number;
         };
+        BroadcastTest: {
+            /** @constant */
+            object: "broadcast_test";
+            /** @description The test audience addresses it went to. */
+            to: string[];
+        };
         BroadcastDeleted: {
             /** @constant */
             object: "broadcast";
@@ -903,7 +911,7 @@ export interface components {
                  * @description For code; stable.
                  * @enum {string}
                  */
-                name: "account_suspended" | "already_sent" | "attachment_type_not_allowed" | "attachments_too_large" | "body_too_large" | "concurrent_idempotent_requests" | "daily_quota_exceeded" | "domain_mismatch" | "domain_not_verified" | "enqueue_failed" | "insufficient_permission" | "https_required" | "internal_error" | "invalid_address" | "invalid_api_key" | "invalid_idempotency_key" | "invalid_idempotent_request" | "invalid_json" | "invalid_state" | "limit_reached" | "mail_disabled" | "missing_api_key" | "missing_variables" | "monthly_quota_exceeded" | "no_recipients" | "not_found" | "not_paused" | "plan_required" | "previous_broadcast_pending" | "previous_broadcast_under_review" | "rate_limit_exceeded" | "recipient_suppressed" | "send_rejected" | "template_not_found" | "too_many_attachments" | "too_many_recipients" | "under_review" | "validation_error";
+                name: "account_suspended" | "already_sent" | "attachment_type_not_allowed" | "attachments_too_large" | "body_too_large" | "concurrent_idempotent_requests" | "daily_quota_exceeded" | "domain_mismatch" | "domain_not_verified" | "enqueue_failed" | "insufficient_permission" | "https_required" | "internal_error" | "invalid_address" | "invalid_api_key" | "invalid_idempotency_key" | "invalid_idempotent_request" | "invalid_json" | "invalid_state" | "limit_reached" | "mail_disabled" | "missing_api_key" | "missing_variables" | "monthly_quota_exceeded" | "no_recipients" | "not_found" | "not_paused" | "plan_required" | "previous_broadcast_pending" | "previous_broadcast_under_review" | "rate_limit_exceeded" | "recipient_suppressed" | "send_rejected" | "template_not_found" | "test_audience_missing" | "too_many_attachments" | "too_many_recipients" | "under_review" | "validation_error";
             };
         };
     };
@@ -1720,8 +1728,8 @@ export interface operations {
                      *           "subject": "March newsletter",
                      *           "status": "sent",
                      *           "scheduled_at": null,
-                     *           "created_at": "…",
-                     *           "sent_at": "…"
+                     *           "created_at": "2026-03-01 09:00:00",
+                     *           "sent_at": "2026-03-01 09:20:00"
                      *         }
                      *       ]
                      *     }
@@ -1749,6 +1757,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description An audience id, or "test": then it goes at once to your test audience, as a test, and no broadcast is saved. */
                     audience_id: string;
                     /** @description An address on the audience's domain or one of its subdomains. */
                     from: string;
@@ -1794,7 +1803,7 @@ export interface operations {
                      *       "recipients": 842
                      *     }
                      */
-                    "application/json": components["schemas"]["BroadcastDraft"] | components["schemas"]["BroadcastQueued"];
+                    "application/json": components["schemas"]["BroadcastDraft"] | components["schemas"]["BroadcastQueued"] | components["schemas"]["BroadcastTest"];
                 };
             };
             /** @description Held for review before sending (error name under_review); nothing was sent yet. */
@@ -1983,7 +1992,17 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description Sends it only to your test audience, as a test. The broadcast stays as it is.
+                     * @constant
+                     */
+                    audience_id?: "test";
+                };
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -1999,7 +2018,7 @@ export interface operations {
                      *       "recipients": 842
                      *     }
                      */
-                    "application/json": components["schemas"]["BroadcastQueued"];
+                    "application/json": components["schemas"]["BroadcastQueued"] | components["schemas"]["BroadcastTest"];
                 };
             };
             /** @description Held for review before sending (error name under_review); nothing was sent yet. */

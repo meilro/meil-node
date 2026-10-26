@@ -42,6 +42,22 @@ describe('idempotency keys', () => {
   });
 });
 
+describe('test sends', () => {
+  it('test(id) asks /send for the test audience; test(content) posts it with audience_id "test" and a key', async () => {
+    const answer = { object: 'broadcast_test', to: ['ana@example.com'] };
+    const { fetch, calls } = mockFetch(json(answer), json(answer));
+    const meil = client(fetch);
+    expect(await meil.broadcasts.test('b/1')).toEqual(answer);
+    await meil.broadcasts.test({ from: 'n@example.org', subject: 'S', html: 'H' });
+    expect(calls.map((c) => [c.method, c.url.replace('https://api.meil.ro', ''), c.body])).toEqual([
+      ['POST', '/broadcasts/b%2F1/send', { audience_id: 'test' }],
+      ['POST', '/broadcasts', { from: 'n@example.org', subject: 'S', html: 'H', audience_id: 'test' }],
+    ]);
+    expect(calls[0]!.headers['idempotency-key']).toBeUndefined();
+    expect(calls[1]!.headers['idempotency-key']).toMatch(UUID);
+  });
+});
+
 describe('URL encoding', () => {
   it('encodes emails in paths, + as %2B', async () => {
     const { fetch, calls } = mockFetch(json({}), json({}), json({}), json({}));
