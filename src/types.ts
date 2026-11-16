@@ -75,7 +75,7 @@ export type ConfirmationStatus = Confirmation['status'];
 /** What `contacts.confirm()` answers: the confirmation, and whether it had been confirmed before this call. */
 export type ConfirmationResult = Schemas['ConfirmationResult'];
 export interface ConfirmContactParams {
-  /** The visitor's IP address, saved in the contact's `confirmed_ip` as proof. Without it, `confirmed_ip` stays empty. */
+  /** The visitor's IP address, saved as proof in `confirmed_ip` on each audience it confirms. Without it, `confirmed_ip` stays empty. */
   ip?: string;
 }
 
